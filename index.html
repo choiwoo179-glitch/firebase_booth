@@ -101,15 +101,10 @@ select { font-size: 16px; padding: .5em; border-radius: 10px; }
 </div>
 
 <script>
-// =================================================================
-// 📌 FIREBASE 설정 가이드 (4자리 코드 온라인 매칭용)
-// 1. https://console.firebase.google.com/ 에 접속 후 프로젝트 생성
-// 2. Realtime Database 생성 (테스트 모드로 시작: read/write true 설정)
-// 3. 웹 앱 추가 후 아래 FIREBASE_CONFIG 의 예시 값을 본인의 프로젝트 정보로 교체해주세요.
-// =================================================================
-const firebaseConfig = {
+const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCWLJkZomAhddOOFHqWEOEzm2IEWrakQgk",
   authDomain: "chiikawa-arena.firebaseapp.com",
+  databaseURL: "https://chiikawa-arena-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "chiikawa-arena",
   storageBucket: "chiikawa-arena.firebasestorage.app",
   messagingSenderId: "989420219700",
@@ -117,15 +112,14 @@ const firebaseConfig = {
   measurementId: "G-J3B68KPH64"
 };
 
-
 let db = null;
 try {
-  if (FIREBASE_CONFIG.apiKey !== "AIzaSy..." && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY") {
+  if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "AIzaSy..." && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY") {
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.database();
   }
 } catch(e) {
-  console.log("Firebase가 초기화되지 않았습니다.");
+  console.error("Firebase 초기화 실패:", e);
 }
 
 const CONFIG = {
@@ -372,7 +366,6 @@ const Input = {
     const special = this.specialQueued; this.specialQueued = false;
     return { mx, my, ax, ay, fire, special };
   },
-  // 🎮 키보드 한 대 2P 조작 함수 (방향키 + L공격 + K특수기)
   readP2(f, enemy) {
     const k = this.keys;
     let mx = (k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0);
@@ -916,9 +909,6 @@ const Select = {
   show() { document.getElementById("select").classList.remove("hidden"); },
 };
 
-// =================================================================
-// 🌐 Firebase / WebRTC 4자리 방 코드 매칭 통신 엔진
-// =================================================================
 const Net = {
   pc: null, ch: null, role: null, connected: false, roomCode: null, guestChar: "chiikawa", roomRef: null,
   last: { mx: 0, my: 0, ax: 1, ay: 0, fire: false }, latch: false,
@@ -951,7 +941,7 @@ const Net = {
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     this.roomCode = code;
     this.roomRef = db.ref("rooms/" + code);
-    await this.roomRef.remove(); // 이전 데이터 삭제
+    await this.roomRef.remove();
 
     const pc = this._make();
     this._bind(pc.createDataChannel("game"));
@@ -1029,9 +1019,8 @@ function startMatch(cfg = game.cfg) {
   game.fighters = [mk(cfg.me, 0, "1", false)];
   
   if (cfg.localMulti) {
-    // 🎮 로컬 2인용 모드
     const foeChar = choose(cfg.foe, []);
-    game.fighters.push(mk(foeChar, 1, "2", false, true)); // 2P 플레이어 할당
+    game.fighters.push(mk(foeChar, 1, "2", false, true));
   } else if (cfg.mode === "2v2") {
     const f1 = choose(cfg.foe, []);
     game.fighters.push(mk(choose(cfg.mate, avoid(cfg.me)), 0, "3", true), mk(f1, 1, "2", true), mk(choose(cfg.foe2, avoid(f1)), 1, "4", true));
